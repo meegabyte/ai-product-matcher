@@ -163,13 +163,7 @@ if df_db is not None:
     cols = df_db.columns
     name_col = next((c for c in cols if 'name' in c.lower() or 'nazwa' in c.lower()), cols[1])
     
-    vectorizer = TfidfVectorizer(   
-        preprocessor=clean_text_for_search, 
-        analyzer='word',  #Zmiana z char_wb na word
-        token_pattern=r'(?u)\b\w+\b', #Identyfikuje też pojedyncze litery jak L, M, S
-        ngram_range=(1, 2), #Patrzy na pojedyncze słowa i pary słów
-        min_df=1
-    )
+    vectorizer = TfidfVectorizer(preprocessor=clean_text_for_search, analyzer='char_wb', ngram_range=(3, 4), min_df=1)
     tfidf_matrix = vectorizer.fit_transform(df_db[name_col])
     
     st.sidebar.success(f" Pomyślnie wczytano wyeksportowane-produkty.csv. Baza: {len(df_db)} poz.")
@@ -262,3 +256,5 @@ if df_db is not None:
             
             csv = df_res.to_csv(sep=';', index=False).encode('utf-8-sig')
             st.download_button("💾 Pobierz Wyniki (CSV)", csv, "wynik_fixed.csv")
+else:
+    st.sidebar.error(f"Nie znaleziono bazy danych. Sprawdź, czy plik istnieje.")
