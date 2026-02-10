@@ -53,9 +53,20 @@ def query_llama_overlap(chunk_text):
         for line in content.split('\n'):
             line = line.strip()
             if line.startswith('- ') or line.startswith('* '): line = line[2:]
-            
-            if len(line) > 3 and "lista" not in line.lower() and "faktura" not in line.lower():
+
+            forbidden_words = [
+                'strona', 'faktura', 'razem', 'netto', 'brutto', 'kwota', 
+                'sprzedawca', 'nabywca', 'data', 'termin', 
+                'lista', 'produktów', 'poniżej', 'oto', 'jeśli', 'chcesz', 'mogę', 'fragment'
+            ]
+
+            if len(line) > 3:
+                #Sprawdzenie czy linia nie zawiera zakazanych słów (case insensitive)
+                if any(bad_word in line.lower() for bad_word in forbidden_words):
+                    continue #pomijanie, śmieci z faktury
+
                 final_name = clean_product_line(line)
+
                 if len(final_name) > 2:
                     cleaned.append(final_name)
         return cleaned
@@ -163,7 +174,15 @@ if df_db is not None:
     cols = df_db.columns
     name_col = next((c for c in cols if 'name' in c.lower() or 'nazwa' in c.lower()), cols[1])
     
-    vectorizer = TfidfVectorizer(preprocessor=clean_text_for_search, analyzer='char_wb', ngram_range=(3, 4), min_df=1)
+    
+    vectorizer = TfidfVectorizer(
+        preprocessor=clean_text_for_search,
+        analyzer='word',
+        token_pattern=r'(?u)\b\w+\b',
+        ngram_range=(1, 3),  #Szukaj też trójek słów (np. "Rękawice nitrylowe L")
+        min_df=1,
+        stop_words=['op', 'szt', 'opak', 'kpl'] #ignoruj jednostki miary
+    )
     tfidf_matrix = vectorizer.fit_transform(df_db[name_col])
     
     st.sidebar.success(f" Pomyślnie wczytano wyeksportowane-produkty.csv. Baza: {len(df_db)} poz.")
